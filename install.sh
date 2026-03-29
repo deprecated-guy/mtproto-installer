@@ -53,13 +53,13 @@ check_docker() {
 			if [[ -z "$COMPOSE_CMD" ]]; then
 				info "docker-compose не найден, устанавливаю плагин..."
 				if command -v apt-get &>/dev/null; then
-					apt-get update -qq && apt-get install -y -qq docker-compose-plugin
+					apt-get update -qq && apt-get install -y -qq docker-compose
 				elif command -v yum &>/dev/null; then
-					yum install -y docker-compose-plugin
+					yum install -y docker-compose
 				elif command -v dnf &>/dev/null; then
-					dnf install -y docker-compose-plugin
+					dnf install -y docker-compose
 				else
-					err "Не удалось установить docker-compose-plugin автоматически. Установите вручную."
+					err "Не удалось установить docker-compose автоматически. Установите вручную."
 				fi
 				resolve_compose
 				[[ -z "$COMPOSE_CMD" ]] && err "docker-compose всё ещё не доступен после установки плагина."
