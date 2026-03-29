@@ -34,10 +34,37 @@ rerun_cmd() {
 	fi
 }
 
+# Определяем доступную команду compose
+resolve_compose() {
+	if docker compose version &>/dev/null 2>&1; then
+		COMPOSE_CMD="docker compose"
+	elif command -v docker-compose &>/dev/null; then
+		COMPOSE_CMD="docker-compose"
+	else
+		COMPOSE_CMD=""
+	fi
+}
+
 check_docker() {
 	if command -v docker &>/dev/null; then
 		if docker info &>/dev/null 2>&1; then
 			info "Docker доступен."
+			resolve_compose
+			if [[ -z "$COMPOSE_CMD" ]]; then
+				info "docker-compose не найден, устанавливаю плагин..."
+				if command -v apt-get &>/dev/null; then
+					apt-get update -qq && apt-get install -y -qq docker-compose-plugin
+				elif command -v yum &>/dev/null; then
+					yum install -y docker-compose-plugin
+				elif command -v dnf &>/dev/null; then
+					dnf install -y docker-compose-plugin
+				else
+					err "Не удалось установить docker-compose-plugin автоматически. Установите вручную."
+				fi
+				resolve_compose
+				[[ -z "$COMPOSE_CMD" ]] && err "docker-compose всё ещё не доступен после установки плагина."
+			fi
+			info "Используется: ${COMPOSE_CMD}"
 			return 0
 		fi
 		echo ""
@@ -64,6 +91,10 @@ check_docker() {
 		echo -e "  ${GREEN}$(rerun_cmd)${NC}"
 		echo ""
 		exit 1
+	fi
+	resolve_compose
+	if [[ -z "$COMPOSE_CMD" ]]; then
+		err "Docker установлен, но docker-compose не найден. Установите docker-compose-plugin."
 	fi
 }
 
@@ -175,8 +206,8 @@ download_and_configure() {
 
 run_compose() {
 	cd "${INSTALL_DIR}"
-	docker compose pull -q 2>/dev/null || true
-	docker compose up -d
+	$COMPOSE_CMD pull -q 2>/dev/null || true
+	$COMPOSE_CMD up -d
 	info "Контейнеры запущены."
 }
 
@@ -219,8 +250,8 @@ print_link() {
 	echo "  Сохраните ссылку и не публикуйте её публично."
 	echo ""
 	echo "  Данные установки: ${INSTALL_DIR}"
-	echo "  Логи:            cd ${INSTALL_DIR} && docker compose logs -f"
-	echo "  Остановка:       cd ${INSTALL_DIR} && docker compose down"
+	echo "  Логи:            cd ${INSTALL_DIR} && ${COMPOSE_CMD} logs -f"
+	echo "  Остановка:       cd ${INSTALL_DIR} && ${COMPOSE_CMD} down"
 	echo ""
 }
 
